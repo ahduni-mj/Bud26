@@ -198,25 +198,25 @@ const App: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-10 shrink-0 pr-4">
-            {/* Total Budget - Increased size and strictly single line */}
-            <div className="flex items-center gap-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] leading-none whitespace-nowrap">Total Budget (in lakhs)</p>
-              <div className="flex items-baseline gap-1.5 leading-none">
+          <div className="flex items-center gap-6 shrink-0 pr-2">
+            {/* Total Budget - estrictly single line, optimized spacing */}
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Total Budget (in lakhs)</span>
+              <div className="flex items-baseline gap-1 leading-none">
                 <span className="text-au-blue font-bold text-[12px]">₹</span>
                 <span className="text-2xl font-black text-slate-800 font-mono tracking-tighter">
                   {toLakhsFormatted(totalBudget)}
                 </span>
-                <span className="text-slate-400 font-bold text-[10px] uppercase">Lakhs</span>
+                <span className="text-slate-400 font-bold text-[10px] uppercase ml-1">Lakhs</span>
               </div>
             </div>
 
             <div className="h-8 w-[1px] bg-slate-200 shrink-0" />
 
-            <div className="grid grid-cols-4 gap-6 px-3">
+            <div className="flex items-center gap-4 px-2">
               {['q1', 'q2', 'q3', 'q4'].map(q => (
                 <div key={q} className="flex flex-col items-end">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter leading-none mb-1.5">{q}</p>
+                  <p className="text-[8px] font-bold text-slate-400 uppercase leading-none mb-1">{q}</p>
                   <p className="text-[11px] font-black text-slate-700 font-mono leading-none">
                     ₹{toLakhsFormatted(quarterlyTotals[q as keyof typeof quarterlyTotals])}L
                   </p>
