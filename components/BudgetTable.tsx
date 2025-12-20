@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Goal, Activity, SubActivity, QuarterDetail } from '../types';
 import { Plus, Trash2, Target, Briefcase, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -73,18 +73,8 @@ const QuarterCompactInput: React.FC<QuarterCompactInputProps> = React.memo(({ go
   
   return (
     <td className="p-0 border-r border-slate-100">
-      <div className="p-0.5 space-y-0.5 bg-white transition-colors w-[78px]">
+      <div className="p-0.5 space-y-0.5 bg-white transition-colors w-[72px]">
         <div className="flex gap-0.5">
-          <div className="flex-[3]">
-            <input
-              type="number"
-              value={qData.rate || ''}
-              placeholder="Rate"
-              onFocus={(e) => e.target.select()}
-              onChange={(e) => onUpdate(goalId, activityId, subId, qKey, 'rate', parseFloat(e.target.value) || 0)}
-              className="w-full text-right bg-slate-50 rounded-sm px-0.5 py-0.5 font-mono text-[9px] font-bold text-slate-700 outline-none border border-slate-200 h-5"
-            />
-          </div>
           <div className="flex-[2]">
             <input
               type="number"
@@ -92,12 +82,22 @@ const QuarterCompactInput: React.FC<QuarterCompactInputProps> = React.memo(({ go
               placeholder="Qty"
               onFocus={(e) => e.target.select()}
               onChange={(e) => onUpdate(goalId, activityId, subId, qKey, 'quantity', parseFloat(e.target.value) || 0)}
-              className="w-full text-right bg-slate-50 rounded-sm px-0.5 py-0.5 font-mono text-[9px] font-bold text-slate-700 outline-none border border-slate-200 h-5"
+              className="w-full text-right bg-slate-50 rounded-sm px-0.5 py-0.5 font-mono text-[10px] font-bold text-slate-700 outline-none border border-slate-200 h-5"
+            />
+          </div>
+          <div className="flex-[3]">
+            <input
+              type="number"
+              value={qData.rate || ''}
+              placeholder="Rate"
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => onUpdate(goalId, activityId, subId, qKey, 'rate', parseFloat(e.target.value) || 0)}
+              className="w-full text-right bg-slate-50 rounded-sm px-0.5 py-0.5 font-mono text-[10px] font-bold text-slate-700 outline-none border border-slate-200 h-5"
             />
           </div>
         </div>
         <div className={`flex justify-center items-center px-0.5 py-0.5 rounded-sm ${accentColor} border border-slate-100`}>
-          <span className="font-mono text-[9px] font-bold truncate">₹{formatINR(getAmt(qData))}</span>
+          <span className="font-mono text-[10px] font-bold truncate">₹{formatINR(getAmt(qData))}</span>
         </div>
       </div>
     </td>
@@ -111,6 +111,18 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
   
   const [collapsedGoals, setCollapsedGoals] = useState<Record<string, boolean>>({});
   const [collapsedActivities, setCollapsedActivities] = useState<Record<string, boolean>>({});
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (lastAddedId) {
+      const el = document.querySelector(`[data-focus-id="${lastAddedId}"]`) as HTMLInputElement | HTMLTextAreaElement;
+      if (el) {
+        el.focus();
+        if ('select' in el) el.select();
+      }
+      setLastAddedId(null);
+    }
+  }, [lastAddedId, goals]);
 
   const toggleGoalCollapse = (id: string) => {
     setCollapsedGoals(prev => ({ ...prev, [id]: !prev[id] }));
@@ -118,6 +130,12 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
 
   const toggleActivityCollapse = (id: string) => {
     setCollapsedActivities(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const addGoal = () => {
+    const newId = crypto.randomUUID();
+    setGoals([...goals, { id: newId, name: '', activities: [] }]);
+    setLastAddedId(newId);
   };
 
   const updateGoalName = (goalId: string, name: string) => {
@@ -129,11 +147,13 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
   };
 
   const addActivity = (goalId: string) => {
+    const newId = crypto.randomUUID();
     setGoals(goals.map(g => g.id === goalId ? {
       ...g,
-      activities: [...g.activities, { id: crypto.randomUUID(), name: '', subActivities: [] }]
+      activities: [...g.activities, { id: newId, name: '', subActivities: [] }]
     } : g));
     setCollapsedGoals(prev => ({ ...prev, [goalId]: false }));
+    setLastAddedId(newId);
   };
 
   const removeActivity = (goalId: string, activityId: string) => {
@@ -151,13 +171,14 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
   };
 
   const addSubActivity = (goalId: string, activityId: string) => {
+    const newId = crypto.randomUUID();
     const emptyQ = () => ({ rate: 0, quantity: 0 });
     setGoals(goals.map(g => g.id === goalId ? {
       ...g,
       activities: g.activities.map(a => a.id === activityId ? {
         ...a,
         subActivities: [...a.subActivities, { 
-          id: crypto.randomUUID(), 
+          id: newId, 
           name: '', 
           description: '',
           remarks: '',
@@ -173,6 +194,7 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
       } : a)
     } : g));
     setCollapsedActivities(prev => ({ ...prev, [activityId]: false }));
+    setLastAddedId(newId);
   };
 
   const removeSubActivity = (goalId: string, activityId: string, subId: string) => {
@@ -315,12 +337,12 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
                 </div>
               </div>
               
-              {/* Goal Objective - Same row layout as per screenshot */}
               <div className="flex items-center gap-3 flex-grow ml-2">
                 <span className="text-[11px] uppercase font-black tracking-widest text-au-blue shrink-0 whitespace-nowrap">Goal Objective</span>
                 <input
                   type="text"
                   placeholder="Define Objective..."
+                  data-focus-id={goal.id}
                   value={goal.name}
                   onChange={(e) => updateGoalName(goal.id, e.target.value)}
                   className="bg-transparent border-none focus:ring-0 font-extrabold text-lg w-full text-slate-800 p-0 placeholder:text-slate-300 leading-none"
@@ -369,12 +391,12 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
                         </span>
                       </div>
                       
-                      {/* Strategy Cluster - Same row layout as per screenshot */}
                       <div className="flex items-center gap-3 flex-grow ml-1">
                         <span className="text-[11px] uppercase font-black text-slate-400 tracking-[0.12em] shrink-0 whitespace-nowrap">Strategy Cluster {goalIdx+1}.{String.fromCharCode(97 + actIdx).toUpperCase()}</span>
                         <input
                           type="text"
                           placeholder="Strategy Cluster..."
+                          data-focus-id={activity.id}
                           value={activity.name}
                           onChange={(e) => updateActivityName(goal.id, activity.id, e.target.value)}
                           className="bg-transparent border-none focus:ring-0 font-bold text-lg text-slate-700 w-full p-0 leading-none"
@@ -396,22 +418,22 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
                   {!collapsedActivities[activity.id] && (
                     <div className="animate-in slide-in-from-top-1 duration-200">
                       <div className="overflow-x-auto custom-scrollbar rounded-sm border border-slate-200 bg-white shadow-sm">
-                        <table className="w-full text-left border-collapse min-w-[900px]">
+                        <table className="w-full text-left border-collapse min-w-[850px]">
                           <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                              <th className="px-0.5 py-1 w-[25px] font-bold text-[10px] text-slate-500 border-r border-slate-200 text-center">S.No</th>
-                              <th className="px-1 py-1 w-[130px] font-bold text-[11px] text-slate-600 border-r border-slate-200">Activity Head</th>
-                              <th className="px-1 py-1 w-[100px] font-bold text-[11px] text-slate-600 border-r border-slate-200">Details</th>
-                              <th className="px-1 py-1 w-[70px] font-bold text-[11px] text-slate-600 border-r border-slate-200">Remarks</th>
-                              <th className="px-1 py-1 w-[80px] font-bold text-[11px] text-slate-600 border-r border-slate-200 leading-tight">VC Comments</th>
-                              <th className="px-0.5 py-1 w-[35px] font-bold text-[11px] text-slate-600 border-r border-slate-200 text-center">Unit</th>
-                              <th className="px-0 py-1 text-center text-[11px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[78px]">Q1</th>
-                              <th className="px-0 py-1 text-center text-[11px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[78px]">Q2</th>
-                              <th className="px-0 py-1 text-center text-[11px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[78px]">Q3</th>
-                              <th className="px-0 py-1 text-center text-[11px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[78px]">Q4</th>
-                              <th className="px-1 py-1 text-right w-[75px] font-extrabold text-[11px] text-au-blue bg-slate-50">Annual</th>
-                              <th className="px-1 py-1 w-[85px] font-bold text-[11px] text-slate-600 border-x border-slate-200 leading-tight">Ledger</th>
-                              <th className="px-0.5 py-1 w-[40px] font-bold text-[11px] text-slate-600 border-r border-slate-200 text-center">Code</th>
+                              <th className="px-0.5 py-1 w-[25px] font-bold text-[11px] text-slate-500 border-r border-slate-200 text-center">S.No</th>
+                              <th className="px-1 py-1 w-[120px] font-bold text-[12px] text-slate-600 border-r border-slate-200">Activity Head</th>
+                              <th className="px-1 py-1 w-[90px] font-bold text-[12px] text-slate-600 border-r border-slate-200">Details</th>
+                              <th className="px-1 py-1 w-[60px] font-bold text-[12px] text-slate-600 border-r border-slate-200">Remarks</th>
+                              <th className="px-1 py-1 w-[70px] font-bold text-[12px] text-slate-600 border-r border-slate-200 leading-tight">VC Comments</th>
+                              <th className="px-0.5 py-1 w-[35px] font-bold text-[12px] text-slate-600 border-r border-slate-200 text-center">Unit</th>
+                              <th className="px-0 py-1 text-center text-[12px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[72px]">Q1</th>
+                              <th className="px-0 py-1 text-center text-[12px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[72px]">Q2</th>
+                              <th className="px-0 py-1 text-center text-[12px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[72px]">Q3</th>
+                              <th className="px-0 py-1 text-center text-[12px] font-bold text-au-blue bg-au-blue-light/20 border-r border-slate-200 w-[72px]">Q4</th>
+                              <th className="px-1 py-1 text-right w-[70px] font-extrabold text-[12px] text-au-blue bg-slate-50">Annual</th>
+                              <th className="px-1 py-1 w-[80px] font-bold text-[12px] text-slate-600 border-x border-slate-200 leading-tight">Ledger</th>
+                              <th className="px-0.5 py-1 w-[40px] font-bold text-[12px] text-slate-600 border-r border-slate-200 text-center">Code</th>
                               <th className="w-8"></th>
                             </tr>
                           </thead>
@@ -423,20 +445,21 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
                                 onDragStart={(e) => { e.stopPropagation(); handleSubDragStart(goal.id, activity.id, subIdx); }}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => { e.stopPropagation(); handleSubDrop(goal.id, activity.id, subIdx); }}
-                                className={`group hover:bg-au-blue-light/60 transition-all ${draggedSubInfo?.goalId === goal.id && draggedSubInfo?.activityId === activity.id && draggedSubInfo?.index === subIdx ? 'opacity-20 border-t-2 border-au-blue' : ''}`}
+                                className={`group hover:bg-au-blue-light/50 transition-all ${draggedSubInfo?.goalId === goal.id && draggedSubInfo?.activityId === activity.id && draggedSubInfo?.index === subIdx ? 'opacity-20 border-t-2 border-au-blue' : ''}`}
                               >
                                 <td className="px-0.5 py-0.5 border-r border-slate-100 text-center">
                                   <div className="flex flex-col items-center">
                                     <div className="cursor-grab active:cursor-grabbing text-slate-200 hover:text-au-blue transition-colors">
                                       <GripVertical className="w-2.5 h-2.5" />
                                     </div>
-                                    <span className="text-[9px] font-black text-slate-400 font-mono">{goalIdx+1}.{String.fromCharCode(97 + actIdx).toUpperCase()}.{subIdx + 1}</span>
+                                    <span className="text-[10px] font-black text-slate-400 font-mono">{goalIdx+1}.{String.fromCharCode(97 + actIdx).toUpperCase()}.{subIdx + 1}</span>
                                   </div>
                                 </td>
                                 <td className="px-0.5 py-0.5 border-r border-slate-100">
                                   <textarea
                                     value={sub.name}
                                     placeholder="Activity..."
+                                    data-focus-id={sub.id}
                                     onChange={(e) => updateSubField(goal.id, activity.id, sub.id, 'name', e.target.value)}
                                     className="w-full bg-slate-50 rounded-sm p-1 text-[11px] font-bold text-slate-900 resize-none h-[36px] custom-scrollbar border border-slate-100 focus:bg-white focus:border-au-blue leading-tight"
                                   />
@@ -471,7 +494,7 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
                                     value={sub.unit}
                                     placeholder="Unit"
                                     onChange={(e) => updateSubField(goal.id, activity.id, sub.id, 'unit', e.target.value)}
-                                    className="w-full bg-slate-50 rounded-sm p-0.5 text-[10px] font-bold text-slate-600 h-[36px] text-center border border-slate-100 focus:bg-white"
+                                    className="w-full bg-slate-50 rounded-sm p-0.5 text-[11px] font-bold text-slate-600 h-[36px] text-center border border-slate-100 focus:bg-white"
                                   />
                                 </td>
                                 
@@ -480,11 +503,11 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
                                 <QuarterCompactInput goalId={goal.id} activityId={activity.id} subId={sub.id} qKey="q3" qData={sub.q3} accentColor="text-au-blue bg-au-blue-light/10" onUpdate={updateQuarterValue} />
                                 <QuarterCompactInput goalId={goal.id} activityId={activity.id} subId={sub.id} qKey="q4" qData={sub.q4} accentColor="text-au-blue bg-au-blue-light/10" onUpdate={updateQuarterValue} />
                                 
-                                <td className="px-1 py-0.5 text-right font-black text-slate-900 bg-slate-50/50 font-mono text-[11px] border-l border-slate-100 leading-tight">
+                                <td className="px-1 py-0.5 text-right font-black text-slate-900 bg-slate-50/50 font-mono text-[12px] border-l border-slate-100 leading-tight">
                                   ₹{formatINR(getSubTotal(sub))}
                                 </td>
 
-                                <td className="px-0.5 py-0.5 border-x border-slate-100 w-[85px]">
+                                <td className="px-0.5 py-0.5 border-x border-slate-100 w-[80px]">
                                   <div className="h-[36px] flex items-center bg-slate-50 rounded-sm px-1 border border-slate-100 overflow-hidden">
                                     <select
                                       value={sub.ledgerName}
@@ -547,14 +570,14 @@ const BudgetTable: React.FC<Props> = ({ goals, setGoals, schoolName }) => {
           <Target className="w-12 h-12 text-au-blue mb-6 opacity-20" />
           <h3 className="text-2xl font-black text-slate-900 mb-3">Initialize Budget Plan</h3>
           <p className="text-slate-400 mb-8 text-sm max-w-[300px]">Define a strategic goal to begin institutional planning.</p>
-          <button onClick={() => setGoals([{ id: crypto.randomUUID(), name: '', activities: [] }])} className="bg-au-blue text-white px-10 py-4 rounded-sm font-black text-sm hover:bg-au-blue-dark transition-all shadow-md active:scale-95 flex items-center gap-4">
+          <button onClick={addGoal} className="bg-au-blue text-white px-10 py-4 rounded-sm font-black text-sm hover:bg-au-blue-dark transition-all shadow-md active:scale-95 flex items-center gap-4">
             <Plus className="w-5 h-5" />
             New Strategic Goal
           </button>
         </div>
       ) : (
         <button
-          onClick={() => setGoals([...goals, { id: crypto.randomUUID(), name: '', activities: [] }])}
+          onClick={addGoal}
           className="w-full py-8 border-2 border-dashed border-slate-300 rounded-sm text-slate-400 hover:text-au-blue hover:border-au-blue hover:bg-white transition-all flex flex-col items-center justify-center gap-2 group"
         >
           <Plus className="w-8 h-8 group-hover:scale-110 transition-transform" />

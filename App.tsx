@@ -66,9 +66,13 @@ const App: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const importedGoals = await parseExcelFile(file);
-        setGoals(importedGoals);
+        const result = await parseExcelFile(file);
+        setGoals(result.goals);
+        if (result.schoolName) setSchoolName(result.schoolName);
+        if (result.schoolCode) setSchoolCode(String(result.schoolCode));
+        if (result.submittedBy) setSubmittedBy(result.submittedBy);
       } catch (err) {
+        console.error(err);
         alert("Import failed. Check file format.");
       }
     }
@@ -199,7 +203,6 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6 shrink-0 pr-2">
-            {/* Total Budget - estrictly single line, optimized spacing */}
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Total Budget (in lakhs)</span>
               <div className="flex items-baseline gap-1 leading-none">

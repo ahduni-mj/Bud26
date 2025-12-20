@@ -11,9 +11,8 @@ export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: str
     goal.activities.forEach((activity, aIdx) => {
       activity.subActivities.forEach((sub, sIdx) => {
         const total = getAmt(sub.q1) + getAmt(sub.q2) + getAmt(sub.q3) + getAmt(sub.q4);
-        const serialNo = `${gIdx + 1}.${String.fromCharCode(97 + aIdx)}.${sIdx + 1}`;
+        const serialNo = `${gIdx + 1}.${String.fromCharCode(97 + aIdx).toUpperCase()}.${sIdx + 1}`;
         
-        // Reordered columns as per user request
         flattenedData.push({
           'School Code': schoolCode,
           'School / Activity / Function': schoolName,
@@ -27,17 +26,17 @@ export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: str
           'Ledger Name': sub.ledgerName,
           'Ledger Code': sub.ledgerCode,
           'Unit': sub.unit,
-          'Q1 Rate': sub.q1.rate,
           'Q1 Quantity': sub.q1.quantity,
+          'Q1 Rate': sub.q1.rate,
           'Q1 Total (INR)': getAmt(sub.q1),
-          'Q2 Rate': sub.q2.rate,
           'Q2 Quantity': sub.q2.quantity,
+          'Q2 Rate': sub.q2.rate,
           'Q2 Total (INR)': getAmt(sub.q2),
-          'Q3 Rate': sub.q3.rate,
           'Q3 Quantity': sub.q3.quantity,
+          'Q3 Rate': sub.q3.rate,
           'Q3 Total (INR)': getAmt(sub.q3),
-          'Q4 Rate': sub.q4.rate,
           'Q4 Quantity': sub.q4.quantity,
+          'Q4 Rate': sub.q4.rate,
           'Q4 Total (INR)': getAmt(sub.q4),
           'Annual Total (INR)': total,
           'Submitted By': submittedBy,
@@ -51,34 +50,22 @@ export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: str
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Budget Plan');
   
-  // Improved column widths for better output formatting
   const wscols = [
-    { wch: 12 }, // School Code
-    { wch: 30 }, // School Name
-    { wch: 10 }, // Serial No
-    { wch: 35 }, // Goal
-    { wch: 30 }, // Strategy
-    { wch: 35 }, // Activity
-    { wch: 40 }, // Description
-    { wch: 25 }, // Remarks
-    { wch: 25 }, // VC Remarks
-    { wch: 30 }, // Ledger Name
-    { wch: 12 }, // Ledger Code
-    { wch: 10 }, // Unit
-    { wch: 12 }, { wch: 10 }, { wch: 15 }, // Q1
-    { wch: 12 }, { wch: 10 }, { wch: 15 }, // Q2
-    { wch: 12 }, { wch: 10 }, { wch: 15 }, // Q3
-    { wch: 12 }, { wch: 10 }, { wch: 15 }, // Q4
-    { wch: 20 }, // Annual Total
-    { wch: 20 }, // Submitted By
-    { wch: 25 }  // Timestamp
+    { wch: 12 }, { wch: 30 }, { wch: 10 }, { wch: 35 }, { wch: 30 }, 
+    { wch: 35 }, { wch: 40 }, { wch: 25 }, { wch: 25 }, { wch: 30 }, 
+    { wch: 12 }, { wch: 10 }, 
+    { wch: 10 }, { wch: 12 }, { wch: 15 }, // Q1
+    { wch: 10 }, { wch: 12 }, { wch: 15 }, // Q2
+    { wch: 10 }, { wch: 12 }, { wch: 15 }, // Q3
+    { wch: 10 }, { wch: 12 }, { wch: 15 }, // Q4
+    { wch: 20 }, { wch: 20 }, { wch: 25 }
   ];
   worksheet['!cols'] = wscols;
 
-  XLSX.writeFile(workbook, `Budget_Report_${schoolCode}_${schoolName.replace(/\s+/g, '_')}.xlsx`);
+  XLSX.writeFile(workbook, `Budget_Report_${schoolCode || 'N_A'}_${(schoolName || 'Budget').replace(/\s+/g, '_')}.xlsx`);
 };
 
-export const parseExcelFile = (file: File): Promise<Goal[]> => {
+export const parseExcelFile = (file: File): Promise<{ goals: Goal[], schoolName?: string, schoolCode?: string, submittedBy?: string }> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -87,6 +74,16 @@ export const parseExcelFile = (file: File): Promise<Goal[]> => {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(sheet) as any[];
+
+        if (jsonData.length === 0) {
+          resolve({ goals: [] });
+          return;
+        }
+
+        const firstRow = jsonData[0];
+        const schoolName = firstRow['School / Activity / Function'] || firstRow['School / Activity / Function Name'];
+        const schoolCode = firstRow['School Code'] || firstRow['# Code'];
+        const submittedBy = firstRow['Submitted By'];
 
         const goalsMap: Record<string, Goal> = {};
 
@@ -114,14 +111,26 @@ export const parseExcelFile = (file: File): Promise<Goal[]> => {
             ledgerName: row['Ledger Name'] || '',
             ledgerCode: row['Ledger Code'] || '',
             unit: row['Unit'] || '',
-            q1: { rate: Number(row['Q1 Rate']) || 0, quantity: Number(row['Q1 Quantity']) || 0 },
-            q2: { rate: Number(row['Q2 Rate']) || 0, quantity: Number(row['Q2 Quantity']) || 0 },
-            q3: { rate: Number(row['Q3 Rate']) || 0, quantity: Number(row['Q3 Quantity']) || 0 },
-            q4: { rate: Number(row['Q4 Rate']) || 0, quantity: Number(row['Q4 Quantity']) || 0 },
+            q1: { 
+              rate: Number(row['Q1 Rate']) || 0, 
+              quantity: Number(row['Q1 Quantity']) || 0 
+            },
+            q2: { 
+              rate: Number(row['Q2 Rate']) || 0, 
+              quantity: Number(row['Q2 Quantity']) || 0 
+            },
+            q3: { 
+              rate: Number(row['Q3 Rate']) || 0, 
+              quantity: Number(row['Q3 Quantity']) || 0 
+            },
+            q4: { 
+              rate: Number(row['Q4 Rate']) || 0, 
+              quantity: Number(row['Q4 Quantity']) || 0 
+            },
           });
         });
 
-        resolve(Object.values(goalsMap));
+        resolve({ goals: Object.values(goalsMap), schoolName, schoolCode, submittedBy });
       } catch (err) {
         reject(err);
       }
