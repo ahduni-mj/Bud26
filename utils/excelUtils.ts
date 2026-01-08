@@ -4,7 +4,7 @@ import { Goal, SubActivity, QuarterDetail } from '../types';
 
 const getAmt = (q: QuarterDetail) => (q.rate || 0) * (q.quantity || 0);
 
-export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: string, submittedBy: string, timestamp: string) => {
+const getFlattenedData = (goals: Goal[], schoolName: string, schoolCode: string, submittedBy: string, timestamp: string) => {
   const flattenedData: any[] = [];
 
   goals.forEach((goal, gIdx) => {
@@ -17,7 +17,7 @@ export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: str
           'School Code': schoolCode,
           'School / Activity / Function': schoolName,
           'Serial No': serialNo,
-          'Goal Objective': goal.name,
+          'Goal': goal.name,
           'Strategy': activity.name,
           'Activity / Cost Head': sub.name,
           'Details / Description': sub.description,
@@ -45,7 +45,21 @@ export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: str
       });
     });
   });
+  return flattenedData;
+};
 
+export const getExcelBlob = (goals: Goal[], schoolName: string, schoolCode: string, submittedBy: string, timestamp: string): Blob => {
+  const data = getFlattenedData(goals, schoolName, schoolCode, submittedBy, timestamp);
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Budget Plan');
+  
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+};
+
+export const exportToExcel = (goals: Goal[], schoolName: string, schoolCode: string, submittedBy: string, timestamp: string) => {
+  const flattenedData = getFlattenedData(goals, schoolName, schoolCode, submittedBy, timestamp);
   const worksheet = XLSX.utils.json_to_sheet(flattenedData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Budget Plan');
@@ -88,7 +102,7 @@ export const parseExcelFile = (file: File): Promise<{ goals: Goal[], schoolName?
         const goalsMap: Record<string, Goal> = {};
 
         jsonData.forEach((row) => {
-          const goalName = row['Goal Objective'] || row['Goal'] || 'General';
+          const goalName = row['Goal'] || row['Goal Objective'] || 'General';
           const strategyName = row['Strategy'] || row['Activity Cluster'] || 'Standard';
           const subName = row['Activity / Cost Head'] || row['Line Item'] || 'Misc';
           

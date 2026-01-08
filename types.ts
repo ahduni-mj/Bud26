@@ -35,4 +35,4 @@ export interface BudgetData {
   goals: Goal[];
 }
 
-export type ViewType = 'PLANNER' | 'DASHBOARD' | 'AI_INSIGHTS';
+export type ViewType = 'PLANNER' | 'DASHBOARD';
